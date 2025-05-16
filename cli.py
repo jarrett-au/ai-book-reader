@@ -231,11 +231,7 @@ def main():
         interval_summaries = generate_interval_summaries(chunk_results, summary_generator, summary_interval)
         print(colored(f"✅ 生成了 {len(interval_summaries)} 个间隔摘要", "green"))
         
-        # 6.2 生成最终摘要
-        all_knowledge = chunk_analyzer.get_all_knowledge()
-        final_summary = summary_generator.generate_final_summary(all_knowledge)
-        
-        # 6.3 生成元摘要
+        # 6.2 生成元摘要
         meta_summary = summary_generator.generate_meta_summary()
         meta_summary_path = dirs["meta_summary"] / f"{file_path.stem}_meta_summary.md"
         

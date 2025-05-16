@@ -111,102 +111,18 @@ class SummaryGenerator:
         
         return summary_path
     
-    def generate_final_summary(self, all_knowledge: List[str]) -> str:
-        """生成最终摘要
-        
-        Args:
-            all_knowledge: 所有知识点
-            
-        Returns:
-            生成的最终摘要内容
-        """
-        if not all_knowledge:
-            print(colored("\n⚠️ 跳过最终摘要：没有知识点", "yellow"))
-            return ""
-            
-        start_time = time.time()
-        print(colored(f"\n🤔 生成最终摘要 ({len(all_knowledge)} 个知识点)...", "cyan"))
-        
-        try:
-            # 调用LLM生成摘要
-            completion = self.llm.invoke(
-                [
-                    {"role": "system", "content": PROMPTS["interval_summary"]},
-                    {"role": "user", "content": f"Analyze this content:\n" + "\n".join(all_knowledge)}
-                ]
-            )
-            
-            summary = completion.content
-            
-            # 计算耗时
-            elapsed_time = time.time() - start_time
-            elapsed_str = format_elapsed_time(elapsed_time)
-            print(colored(f"✅ 最终摘要生成成功！(耗时: {elapsed_str})", "green"))
-            
-            # 保存摘要
-            self._save_final_summary(summary)
-            
-            return summary
-            
-        except Exception as e:
-            print(colored(f"❌ 生成最终摘要时出错: {e}", "red"))
-            return ""
-    
-    def _save_final_summary(self, summary: str) -> Path:
-        """保存最终摘要到文件
-        
-        Args:
-            summary: 摘要内容
-            
-        Returns:
-            保存的文件路径
-        """
-        if not summary:
-            print(colored("⏭️ 跳过最终摘要保存: 没有内容", "yellow"))
-            return None
-            
-        # 获取现有的最终摘要数量
-        existing_finals = list(self.summary_dir.glob(f"final_summary_*.md"))
-        next_number = len(existing_finals) + 1
-            
-        # 创建保存路径
-        summary_path = self.summary_dir / f"final_summary_{next_number:03d}.md"
-        
-        # 创建元数据
-        metadata = {
-            "file_name": self.file_name,
-            "type": "final_summary"
-        }
-        
-        # 保存markdown
-        save_markdown(
-            content=summary,
-            file_path=summary_path,
-            title=f"最终摘要: {self.base_name}",
-            metadata=metadata
-        )
-        
-        return summary_path
-    
     def generate_meta_summary(self) -> str:
         """根据所有已生成的摘要创建元摘要
         
         Returns:
             生成的元摘要内容
         """
-        # 读取所有已生成的摘要（间隔和最终摘要）
+        # 读取所有已生成的摘要（仅包含间隔摘要）
         all_summaries = []
         
         # 读取间隔摘要
         interval_summaries = sorted(self.summary_dir.glob("interval_summary_*.md"))
         for summary_file in interval_summaries:
-            with open(summary_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                all_summaries.append(content)
-        
-        # 读取最终摘要
-        final_summaries = sorted(self.summary_dir.glob("final_summary_*.md"))
-        for summary_file in final_summaries:
             with open(summary_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 all_summaries.append(content)

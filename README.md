@@ -69,7 +69,7 @@ python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 -
 
 - `book_analysis/toc/`: 提取的目录
 - `book_analysis/knowledge/`: 每个chunk的分析结果
-- `book_analysis/summaries/`: 中间摘要和最终摘要
+- `book_analysis/summaries/`: 中间摘要
 - `book_analysis/meta_summaries/`: 元摘要
 - `book_analysis/integrated/`: 整合的最终报告
 
