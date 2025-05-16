@@ -6,7 +6,7 @@ import shutil
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from termcolor import colored
 
 
@@ -119,11 +119,10 @@ def save_markdown(content: str, file_path: Path, title: str = None, metadata: Di
             header.append(f"{key}: {value}")
         header.append("---")
     
-    header.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     header.append("")  # 空行
     
     # 组装完整内容
-    full_content = "\n".join(header) + "\n" + content + "\n\n---\n*由AI书籍阅读工具生成*"
+    full_content = "\n".join(header) + "\n" + content
     
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(full_content)

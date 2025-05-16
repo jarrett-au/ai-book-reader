@@ -2,13 +2,6 @@
 配置文件，包含所有prompt和可配置参数
 """
 from pathlib import Path
-from prompt import (
-    CHUNK_ANALYSIS,
-    INTERVAL_SUMMARY,
-    META_SUMMARY,
-    TOC_EXTRACTION,
-    OUTPUT_INTEGRATION
-)
 
 # 文件路径配置
 BASE_DIR = Path("book_analysis")
@@ -23,7 +16,7 @@ INTEGRATED_DIR = BASE_DIR / "integrated"
 CHUNK_SIZE = 5000  # token per chunk
 CHUNK_OVERLAP = 500  # chunk的重叠部分
 SUMMARY_INTERVAL = 5  # 每处理多少个chunk生成一次中间摘要
-MAX_WORKERS = 3  # 最大并行工作线程数
+MAX_WORKERS = 5  # 最大并行工作线程数
 
 # 支持的文件格式
 SUPPORTED_FORMATS = ['.pdf', '.md', '.txt']

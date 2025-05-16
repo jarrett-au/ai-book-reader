@@ -19,9 +19,9 @@ from langchain_openai import AzureChatOpenAI
 
 # 导入自定义模块
 from config import (
-    BASE_DIR, FILE_DIR, TOC_DIR, KNOWLEDGE_DIR, SUMMARIES_DIR, 
-    META_SUMMARY_DIR, INTEGRATED_DIR, CHUNK_SIZE, CHUNK_OVERLAP, 
-    SUMMARY_INTERVAL, MAX_WORKERS, SUPPORTED_FORMATS, MODEL,
+    BASE_DIR, 
+    CHUNK_SIZE, CHUNK_OVERLAP, 
+    SUMMARY_INTERVAL, MAX_WORKERS, SUPPORTED_FORMATS,
     DEPTH_OPTIONS, DEFAULT_DEPTH
 )
 from src.document_processor import DocumentProcessor
@@ -139,7 +139,7 @@ def process_chunks(chunks: List[str], chunk_analyzer: ChunkAnalyzer, max_workers
     return sorted(results, key=lambda x: x.get('chunk_idx', 0))
 
 
-def generate_interval_summaries(chunks_results: List[Dict[str, Any]], summary_generator: SummaryGenerator, interval: int) -> List[str]:
+def generate_interval_summaries(chunks_results: List[Dict[str, Any]], summary_generator: SummaryGenerator, interval: int, max_workers: int) -> List[str]:
     """生成间隔摘要
     
     Args:
@@ -150,11 +150,9 @@ def generate_interval_summaries(chunks_results: List[Dict[str, Any]], summary_ge
     Returns:
         摘要列表
     """
-    summaries = []
-    
-    # 按区间生成摘要
+    # 按区间组织知识点
+    interval_knowledge_groups = []
     interval_knowledge = []
-    interval_count = 0
     
     for i, result in enumerate(chunks_results):
         if result.get('has_content', False):
@@ -164,13 +162,39 @@ def generate_interval_summaries(chunks_results: List[Dict[str, Any]], summary_ge
         
         # 检查是否到达间隔或最后一个chunk
         if (i + 1) % interval == 0 or i == len(chunks_results) - 1:
-            if interval_knowledge:  # 只在有知识点时生成摘要
-                interval_count += 1
-                summary = summary_generator.generate_interval_summary(interval_knowledge, interval_count)
-                summaries.append(summary)
+            if interval_knowledge:  # 只在有知识点时收集
+                interval_knowledge_groups.append(interval_knowledge)
                 interval_knowledge = []  # 重置知识点列表
     
-    return summaries
+    summaries = []
+    
+    print(colored(f"\n📝 并行生成 {len(interval_knowledge_groups)} 个间隔摘要 (并行工作线程: {max_workers})...", "cyan"))
+    
+    start_time = time.time()
+    
+    # 使用ThreadPoolExecutor进行并行处理
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 创建futures
+        futures = {executor.submit(summary_generator.generate_interval_summary, knowledge_group, idx+1): idx 
+                   for idx, knowledge_group in enumerate(interval_knowledge_groups)}
+        
+        # 使用tqdm显示进度
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="生成摘要"):
+            idx = futures[future]
+            try:
+                summary = future.result()
+                # 保存结果，需要保证顺序
+                summaries.append((idx, summary))
+            except Exception as e:
+                print(colored(f"\n❌ 生成摘要 {idx+1} 时出错: {e}", "red"))
+                summaries.append((idx, f"摘要生成错误: {str(e)}"))
+    
+    elapsed_time = time.time() - start_time
+    elapsed_str = format_elapsed_time(elapsed_time)
+    print(colored(f"\n✅ 完成所有摘要生成 (总耗时: {elapsed_str})", "green"))
+    
+    # 按索引排序并仅返回摘要内容
+    return [summary for _, summary in sorted(summaries, key=lambda x: x[0])]
 
 
 def main():
@@ -230,11 +254,11 @@ def main():
         chunk_results = process_chunks(chunks, chunk_analyzer, max_workers)
         
         # 6. 生成摘要
-        print(colored(f"\n📗 生成摘要 (间隔: {summary_interval} chunks)...", "cyan"))
+        print(colored(f"\n📗 准备生成摘要...", "cyan"))
         summary_generator = SummaryGenerator(llm, dirs["summaries"], dirs["meta_summary"], file_path.name, depth=depth)
         
-        # 6.1 生成间隔摘要
-        interval_summaries = generate_interval_summaries(chunk_results, summary_generator, summary_interval)
+        # 6.1 并行生成间隔摘要
+        interval_summaries = generate_interval_summaries(chunk_results, summary_generator, summary_interval, max_workers)
         print(colored(f"✅ 生成了 {len(interval_summaries)} 个间隔摘要", "green"))
         
         # 6.2 生成元摘要
@@ -242,9 +266,14 @@ def main():
         meta_summary_path = dirs["meta_summary"] / f"{file_path.stem}_meta_summary.md"
         
         # 7. 整合输出
+
+        # tmp
+        toc_path = dirs["toc"] / f"{file_path.stem}_toc.md"
+        meta_summary_path = dirs["meta_summary"] / f"{file_path.stem}_meta_summary.md"
+
         print(colored("\n🔗 整合所有输出...", "cyan"))
         output_integrator = OutputIntegrator(llm, dirs["integrated"], file_path.name, depth=depth)
-        integrated_content = output_integrator.integrate_output(toc_path, dirs["summaries"], meta_summary_path)
+        output_integrator.integrate_output(toc_path, dirs["summaries"], meta_summary_path)
         
         print(colored("\n✨ 处理完成！✨", "green", attrs=['bold']))
         integrated_path = dirs["integrated"] / f"{file_path.stem}_integrated_{depth}.md"
