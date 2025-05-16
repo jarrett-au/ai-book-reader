@@ -2,9 +2,7 @@
 目录提取器，负责从文档中提取目录
 """
 from pathlib import Path
-from typing import Dict, Any, Optional, List
 from termcolor import colored
-import re
 import traceback
 
 from langchain_openai import AzureChatOpenAI

@@ -2,11 +2,9 @@
 摘要生成器，负责生成中间摘要和整体摘要
 """
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import List
 from termcolor import colored
 import time
-import glob
-import os
 
 from langchain_openai import AzureChatOpenAI
 from config import DEFAULT_DEPTH

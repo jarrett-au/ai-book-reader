@@ -2,7 +2,7 @@
 Chunk分析器，负责分析单个chunk并提取关键信息
 """
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from termcolor import colored
 import json
 import time

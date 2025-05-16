@@ -3,7 +3,7 @@
 """
 import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Optional, Callable
 import fitz  # PyMuPDF
 from termcolor import colored
 import shutil
