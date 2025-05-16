@@ -9,14 +9,15 @@ import glob
 import os
 
 from langchain_openai import AzureChatOpenAI
-from config import PROMPTS, SUMMARY_INTERVAL
+from config import DEFAULT_DEPTH
+from prompt import get_prompt
 from src.utils import save_markdown, format_elapsed_time
 
 
 class SummaryGenerator:
     """摘要生成器，负责生成中间摘要和整体摘要"""
     
-    def __init__(self, llm: AzureChatOpenAI, summary_dir: Path, meta_summary_dir: Path, file_name: str):
+    def __init__(self, llm: AzureChatOpenAI, summary_dir: Path, meta_summary_dir: Path, file_name: str, depth: str = DEFAULT_DEPTH):
         """初始化摘要生成器
         
         Args:
@@ -24,12 +25,14 @@ class SummaryGenerator:
             summary_dir: 摘要目录
             meta_summary_dir: 元摘要目录
             file_name: 文件名
+            depth: 分析深度，可选值为"conceptual"、"standard"、"detailed"
         """
         self.llm = llm
         self.summary_dir = summary_dir
         self.meta_summary_dir = meta_summary_dir
         self.file_name = file_name
         self.base_name = Path(file_name).stem
+        self.depth = depth
         
         # 确保目录存在
         self.summary_dir.mkdir(parents=True, exist_ok=True)
@@ -50,13 +53,16 @@ class SummaryGenerator:
             return ""
             
         start_time = time.time()
-        print(colored(f"\n🤔 生成第 {interval_num} 个间隔摘要 ({len(knowledge_points)} 个知识点)...", "cyan"))
+        print(colored(f"\n🤔 生成第 {interval_num} 个间隔摘要 ({len(knowledge_points)} 个知识点, 深度: {self.depth})...", "cyan"))
         
         try:
+            # 根据深度选择对应的prompt
+            interval_summary_prompt = get_prompt("interval_summary", self.depth)
+            
             # 调用LLM生成摘要
             completion = self.llm.invoke(
                 [
-                    {"role": "system", "content": PROMPTS["interval_summary"]},
+                    {"role": "system", "content": interval_summary_prompt},
                     {"role": "user", "content": f"Analyze this content:\n" + "\n".join(knowledge_points)}
                 ]
             )
@@ -92,20 +98,21 @@ class SummaryGenerator:
             return None
             
         # 创建保存路径
-        summary_path = self.summary_dir / f"interval_summary_{interval_num:03d}.md"
+        summary_path = self.summary_dir / f"interval_summary_{interval_num:03d}_{self.depth}.md"
         
         # 创建元数据
         metadata = {
             "interval_num": interval_num,
             "file_name": self.file_name,
-            "type": "interval_summary"
+            "type": "interval_summary",
+            "depth": self.depth
         }
         
         # 保存markdown
         save_markdown(
             content=summary,
             file_path=summary_path,
-            title=f"间隔摘要 #{interval_num}: {self.base_name}",
+            title=f"间隔摘要 #{interval_num}: {self.base_name} (深度: {self.depth})",
             metadata=metadata
         )
         
@@ -120,8 +127,13 @@ class SummaryGenerator:
         # 读取所有已生成的摘要（仅包含间隔摘要）
         all_summaries = []
         
-        # 读取间隔摘要
-        interval_summaries = sorted(self.summary_dir.glob("interval_summary_*.md"))
+        # 读取间隔摘要，优先读取当前深度的摘要
+        interval_summaries = sorted(self.summary_dir.glob(f"interval_summary_*_{self.depth}.md"))
+        
+        # 如果没有找到当前深度的摘要，尝试读取任何可用的摘要
+        if not interval_summaries:
+            interval_summaries = sorted(self.summary_dir.glob("interval_summary_*.md"))
+        
         for summary_file in interval_summaries:
             with open(summary_file, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -132,13 +144,16 @@ class SummaryGenerator:
             return ""
         
         start_time = time.time()
-        print(colored(f"\n🔍 正在基于 {len(all_summaries)} 个摘要创建元摘要...", "cyan"))
+        print(colored(f"\n🔍 正在基于 {len(all_summaries)} 个摘要创建元摘要 (深度: {self.depth})...", "cyan"))
         
         try:
+            # 根据深度选择对应的prompt
+            meta_summary_prompt = get_prompt("meta_summary", self.depth)
+            
             # 使用AI生成元摘要
             completion = self.llm.invoke(
                 [
-                    {"role": "system", "content": PROMPTS["meta_summary"]},
+                    {"role": "system", "content": meta_summary_prompt},
                     {"role": "user", "content": f"基于以下摘要创建一个综合性的元摘要：\n\n" + "\n\n---\n\n".join(all_summaries)}
                 ]
             )
@@ -173,19 +188,20 @@ class SummaryGenerator:
             return None
             
         # 创建保存路径
-        meta_summary_path = self.meta_summary_dir / f"{self.base_name}_meta_summary.md"
+        meta_summary_path = self.meta_summary_dir / f"{self.base_name}_meta_summary_{self.depth}.md"
         
         # 创建元数据
         metadata = {
             "file_name": self.file_name,
-            "type": "meta_summary"
+            "type": "meta_summary",
+            "depth": self.depth
         }
         
         # 保存markdown
         save_markdown(
             content=meta_summary,
             file_path=meta_summary_path,
-            title=f"元摘要: {self.base_name}",
+            title=f"元摘要: {self.base_name} (深度: {self.depth})",
             metadata=metadata
         )
         

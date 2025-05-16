@@ -21,7 +21,8 @@ from langchain_openai import AzureChatOpenAI
 from config import (
     BASE_DIR, FILE_DIR, TOC_DIR, KNOWLEDGE_DIR, SUMMARIES_DIR, 
     META_SUMMARY_DIR, INTEGRATED_DIR, CHUNK_SIZE, CHUNK_OVERLAP, 
-    SUMMARY_INTERVAL, MAX_WORKERS, SUPPORTED_FORMATS, MODEL
+    SUMMARY_INTERVAL, MAX_WORKERS, SUPPORTED_FORMATS, MODEL,
+    DEPTH_OPTIONS, DEFAULT_DEPTH
 )
 from src.document_processor import DocumentProcessor
 from src.toc_extractor import TOCExtractor
@@ -70,9 +71,10 @@ def print_welcome_message():
 6. 整合目录、摘要和整体摘要成完整报告
 
 支持的文件格式: {', '.join(SUPPORTED_FORMATS)}
+支持的深度选项: {', '.join(DEPTH_OPTIONS)}
 
 使用方式：
-python cli.py --file your_file.md [--chunk-size 5000] [--overlap 500] [--interval 5] [--workers 3]
+python cli.py --file your_file.md [--chunk-size 5000] [--overlap 500] [--interval 5] [--workers 3] [--depth 标准]
 
 按Enter继续或Ctrl+C退出...
 """
@@ -88,6 +90,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--overlap', type=int, default=CHUNK_OVERLAP, help=f'chunk重叠大小（字符数），默认为{CHUNK_OVERLAP}')
     parser.add_argument('--interval', type=int, default=SUMMARY_INTERVAL, help=f'摘要生成间隔（chunk数量），默认为{SUMMARY_INTERVAL}')
     parser.add_argument('--workers', type=int, default=MAX_WORKERS, help=f'并行处理线程数，默认为{MAX_WORKERS}')
+    parser.add_argument('--depth', choices=DEPTH_OPTIONS, default=DEFAULT_DEPTH, help=f'分析深度 (概念性/标准/详尽), 默认为{DEFAULT_DEPTH}')
     return parser.parse_args()
 
 
@@ -183,6 +186,9 @@ def main():
         chunk_overlap = args.overlap
         summary_interval = args.interval
         max_workers = args.workers
+        depth = args.depth
+        
+        print(colored(f"\n📊 分析深度: {depth}", "cyan"))
         
         # 检查文件是否存在
         if not file_path.exists():
@@ -220,12 +226,12 @@ def main():
         print(colored(f"✅ 分割完成: 生成 {len(chunks)} 个chunks", "green"))
         
         # 5. 分析chunks
-        chunk_analyzer = ChunkAnalyzer(llm, dirs["knowledge"])
+        chunk_analyzer = ChunkAnalyzer(llm, dirs["knowledge"], depth=depth)
         chunk_results = process_chunks(chunks, chunk_analyzer, max_workers)
         
         # 6. 生成摘要
         print(colored(f"\n📗 生成摘要 (间隔: {summary_interval} chunks)...", "cyan"))
-        summary_generator = SummaryGenerator(llm, dirs["summaries"], dirs["meta_summary"], file_path.name)
+        summary_generator = SummaryGenerator(llm, dirs["summaries"], dirs["meta_summary"], file_path.name, depth=depth)
         
         # 6.1 生成间隔摘要
         interval_summaries = generate_interval_summaries(chunk_results, summary_generator, summary_interval)
@@ -237,11 +243,11 @@ def main():
         
         # 7. 整合输出
         print(colored("\n🔗 整合所有输出...", "cyan"))
-        output_integrator = OutputIntegrator(llm, dirs["integrated"], file_path.name)
+        output_integrator = OutputIntegrator(llm, dirs["integrated"], file_path.name, depth=depth)
         integrated_content = output_integrator.integrate_output(toc_path, dirs["summaries"], meta_summary_path)
         
         print(colored("\n✨ 处理完成！✨", "green", attrs=['bold']))
-        integrated_path = dirs["integrated"] / f"{file_path.stem}_integrated.md"
+        integrated_path = dirs["integrated"] / f"{file_path.stem}_integrated_{depth}.md"
         print(colored(f"\n最终报告已生成至: {integrated_path}", "cyan"))
         
     except KeyboardInterrupt:

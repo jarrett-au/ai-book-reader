@@ -8,7 +8,7 @@ import re
 import traceback
 
 from langchain_openai import AzureChatOpenAI
-from config import PROMPTS
+from prompt import TOC_EXTRACTION
 
 
 class TOCExtractor:
@@ -105,7 +105,7 @@ class TOCExtractor:
             raise ValueError("错误：未配置LLM")
         
         # 使用配置的提示词
-        prompt = PROMPTS["toc_extraction"].format(text=text)
+        prompt = TOC_EXTRACTION.format(text=text)
         
         try:
             response = self.llm.invoke(prompt)

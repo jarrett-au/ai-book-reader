@@ -7,25 +7,28 @@ from termcolor import colored
 import time
 
 from langchain_openai import AzureChatOpenAI
-from config import PROMPTS
+from config import DEFAULT_DEPTH
+from prompt import get_prompt
 from src.utils import save_markdown, format_elapsed_time
 
 
 class OutputIntegrator:
     """输出整合器，负责整合目录、摘要和元摘要"""
     
-    def __init__(self, llm: AzureChatOpenAI, output_dir: Path, file_name: str):
+    def __init__(self, llm: AzureChatOpenAI, output_dir: Path, file_name: str, depth: str = DEFAULT_DEPTH):
         """初始化输出整合器
         
         Args:
             llm: LangChain的Azure OpenAI LLM实例
             output_dir: 输出目录
             file_name: 文件名
+            depth: 分析深度，可选值为"conceptual"、"standard"、"detailed"
         """
         self.llm = llm
         self.output_dir = output_dir
         self.file_name = file_name
         self.base_name = Path(file_name).stem
+        self.depth = depth
         
         # 确保输出目录存在
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -42,7 +45,7 @@ class OutputIntegrator:
             整合后的内容
         """
         start_time = time.time()
-        print(colored("\n🔄 开始整合输出...", "cyan"))
+        print(colored(f"\n🔄 开始整合输出 (深度: {self.depth})...", "cyan"))
         
         # 1. 读取目录内容
         toc_content = self._read_file(toc_path)
@@ -50,26 +53,43 @@ class OutputIntegrator:
             print(colored("⚠️ 未找到目录内容", "yellow"))
             toc_content = "未能成功提取目录内容"
         
-        # 2. 读取中间摘要
+        # 2. 读取中间摘要，优先读取当前深度的摘要
         interval_summaries = []
-        for summary_file in sorted(summary_dir.glob("interval_summary_*.md")):
+        summary_files = sorted(summary_dir.glob(f"interval_summary_*_{self.depth}.md"))
+        
+        # 如果没有找到当前深度的摘要，尝试读取任何可用的摘要
+        if not summary_files:
+            summary_files = sorted(summary_dir.glob("interval_summary_*.md"))
+            
+        for summary_file in summary_files:
             content = self._read_file(summary_file)
             if content:
                 interval_summaries.append(content)
         
-        # 3. 读取元摘要
-        meta_summary_content = self._read_file(meta_summary_path)
+        # 3. 读取元摘要，优先读取当前深度的元摘要
+        meta_summary_path_with_depth = Path(str(meta_summary_path).replace("_meta_summary.md", f"_meta_summary_{self.depth}.md"))
+        
+        # 先尝试读取带深度的元摘要文件
+        meta_summary_content = self._read_file(meta_summary_path_with_depth)
+        
+        # 如果没有找到带深度的元摘要，尝试读取原始元摘要
+        if not meta_summary_content:
+            meta_summary_content = self._read_file(meta_summary_path)
+            
         if not meta_summary_content:
             print(colored("⚠️ 未找到元摘要内容", "yellow"))
             meta_summary_content = "未能成功生成元摘要内容"
         
         # 4. 使用LLM整合内容
         try:
+            # 根据深度获取对应的prompt
+            output_integration_prompt = get_prompt("output_integration", self.depth)
+            
             # 调用LLM整合内容
             completion = self.llm.invoke(
                 [
-                    {"role": "system", "content": PROMPTS["output_integration"]},
-                    {"role": "user", "content": PROMPTS["output_integration"].format(
+                    {"role": "system", "content": output_integration_prompt},
+                    {"role": "user", "content": output_integration_prompt.format(
                         toc=toc_content,
                         interval_summaries="\n\n---\n\n".join(interval_summaries),
                         meta_summary=meta_summary_content
@@ -124,12 +144,13 @@ class OutputIntegrator:
             保存的文件路径
         """
         # 创建保存路径
-        output_path = self.output_dir / f"{self.base_name}_integrated.md"
+        output_path = self.output_dir / f"{self.base_name}_integrated_{self.depth}.md"
         
         # 创建元数据
         metadata = {
             "file_name": self.file_name,
             "type": "integrated_output",
+            "depth": self.depth,
             "generated_time": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         
@@ -137,7 +158,7 @@ class OutputIntegrator:
         save_markdown(
             content=content,
             file_path=output_path,
-            title=f"{self.base_name} - 阅读分析报告",
+            title=f"{self.base_name} - 阅读分析报告 (深度: {self.depth})",
             metadata=metadata
         )
         

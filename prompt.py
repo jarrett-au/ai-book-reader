@@ -1,57 +1,187 @@
 """
-提供各种文档分析和处理的提示词
+提供各种文档分析和处理的提示词，支持不同深度的内容分析
 """
 
-# 单个chunk分析的prompt
-CHUNK_ANALYSIS = """Analyze this content as if you're studying from a document. 
+# 单个chunk分析的prompt - 不同深度版本
+CHUNK_ANALYSIS_TEMPLATES = {
+    "conceptual": """像研究文档一样分析此内容。仅专注于提取核心概念和关键理论观点。
         
-SKIP content if the page/chunk contains:
-- Table of contents
-- Chapter listings
-- Index pages
-- Blank pages
-- Copyright information
-- Publishing details
-- References or bibliography
-- Acknowledgments
+如果页面/内容块包含以下内容，请跳过：
+- 目录
+- 章节列表
+- 索引页
+- 空白页
+- 版权信息
+- 出版详情
+- 参考文献或书目
+- 致谢
 
-DO extract knowledge if the page/chunk contains:
-- Preface content that explains important concepts
-- Actual educational content
-- Key definitions and concepts
-- Important arguments or theories
-- Examples and case studies
-- Significant findings or conclusions
-- Methodologies or frameworks
-- Critical analyses or interpretations
+如果页面/内容块包含以下内容，请提取知识：
+- 关键定义和概念
+- 重要论点或理论
+- 显著发现或结论
+- 方法论或框架
+- 关键分析或解释
 
-For valid content:
-- Set has_content to true
-- Extract detailed, learnable knowledge points
-- Include important quotes or key statements
-- Capture examples with their context
-- Preserve technical terms and definitions
+对于有效内容：
+- 将has_content设为true
+- 仅提取核心概念和理论要点
+- 专注于定义和关键陈述
+- 省略例子和详细解释
+- 保留专业术语和定义
 
-For pages/chunks to skip:
-- Set has_content to false
-- Return empty knowledge list"""
+对于需要跳过的页面/内容块：
+- 将has_content设为false
+- 返回空知识列表""",
 
-# 中间摘要的prompt
-INTERVAL_SUMMARY = """Create a comprehensive summary of the provided content in a concise but detailed way, using markdown format.
+    "standard": """像研究文档一样分析此内容。
+        
+如果页面/内容块包含以下内容，请跳过：
+- 目录
+- 章节列表
+- 索引页
+- 空白页
+- 版权信息
+- 出版详情
+- 参考文献或书目
+- 致谢
+
+如果页面/内容块包含以下内容，请提取知识：
+- 解释重要概念的前言内容
+- 实际教育内容
+- 关键定义和概念
+- 重要论点或理论
+- 示例和案例研究
+- 显著发现或结论
+- 方法论或框架
+- 关键分析或解释
+
+对于有效内容：
+- 将has_content设为true
+- 提取详细的、可学习的知识点
+- 包含重要引述或关键陈述
+- 捕捉例子及其上下文
+- 保留专业术语和定义
+
+对于需要跳过的页面/内容块：
+- 将has_content设为false
+- 返回空知识列表""",
+
+    "detailed": """像研究文档一样分析此内容。以详细、对话式的风格提取所有有价值的信息。
+        
+如果页面/内容块包含以下内容，请跳过：
+- 目录
+- 章节列表
+- 索引页
+- 空白页
+- 版权信息
+- 出版详情
+- 参考文献或书目
+- 致谢
+
+如果页面/内容块包含以下内容，请提取知识：
+- 解释重要概念的前言内容
+- 实际教育内容
+- 关键定义和概念
+- 重要论点或理论
+- 示例和案例研究
+- 显著发现或结论
+- 方法论或框架
+- 关键分析或解释
+
+对于有效内容：
+- 将has_content设为true
+- 以对话语言提取所有详细的知识点
+- 用简单易懂的术语解释概念
+- 包含所有例子、故事和案例研究及其完整背景
+- 提供实际应用和现实世界的相关性
+- 用简明语言解释技术术语，同时保持其含义
+- 适当使用类比来简化复杂概念
+
+对于需要跳过的页面/内容块：
+- 将has_content设为false
+- 返回空知识列表"""
+}
+
+# 中间摘要的prompt - 不同深度版本
+INTERVAL_SUMMARY_TEMPLATES = {
+    "conceptual": """创建一个简明扼要的摘要，仅关注核心概念和关键理论要点，使用markdown格式。
        
-Use markdown formatting:
-- ## for main sections
-- ### for subsections
-- Bullet points for lists
-- `code blocks` for any code or formulas
-- **bold** for emphasis
-- *italic* for terminology
-- > blockquotes for important notes
+使用markdown格式：
+- ##用于主要部分
+- ###用于子部分
+- 项目符号用于列表
+- `代码块`用于任何代码或公式
+- **粗体**用于强调
+- *斜体*用于术语
 
-Return only the markdown summary, nothing else. Do not say 'here is the summary' or anything like that before or after"""
+仅专注于：
+- 核心理论概念
+- 关键定义
+- 主要论点
+- 基本框架
 
-# 整体摘要的prompt
-META_SUMMARY = """你是一位专业的文档分析专家。你的任务是创建一个高级元摘要，整合多个已有摘要并提取核心思想和主要观点。
+省略例子、故事和详细解释。
+仅返回markdown摘要，不包含其他内容。""",
+
+    "standard": """以简洁但详细的方式创建所提供内容的综合摘要，使用markdown格式。
+       
+使用markdown格式：
+- ##用于主要部分
+- ###用于子部分
+- 项目符号用于列表
+- `代码块`用于任何代码或公式
+- **粗体**用于强调
+- *斜体*用于术语
+- >引用块用于重要注释
+
+仅返回markdown摘要，不包含其他内容。不要在开头或结尾说"这是摘要"或类似的话。""",
+
+    "detailed": """创建一个广泛、详细的摘要，使用对话语言彻底解释所有概念，使用markdown格式。
+       
+使用markdown格式：
+- ##用于主要部分
+- ###用于子部分
+- 项目符号用于列表
+- `代码块`用于任何代码或公式
+- **粗体**用于强调
+- *斜体*用于术语
+- >引用块用于重要注释
+
+请确保：
+- 用简单易懂的语言解释所有概念
+- 包含所有例子、故事和案例研究
+- 提供实际应用和现实世界的相关性
+- 使用类比解释复杂概念
+- 将概念与日常经验联系起来
+- 始终保持对话式、友好的语调
+
+仅返回文档内容的markdown摘要，不包含其他内容。"""
+}
+
+# 整体摘要的prompt - 不同深度版本
+META_SUMMARY_TEMPLATES = {
+    "conceptual": """你是一位专业的文档分析专家。你的任务是创建一个简明扼要的元摘要，仅聚焦于核心概念和理论要点。
+
+在创建元摘要时，请遵循以下准则：
+1. 仅识别所有摘要中的核心概念和理论
+2. 保持学术性和概念性的表达
+3. 按重要性排列关键点
+4. 提供简洁的知识结构框架
+5. 省略例子、故事和详细解释
+
+使用markdown格式：
+- # 作为文档标题
+- ## 作为主要部分
+- ### 作为子部分
+- 使用项目符号列表
+- `代码块` 用于任何代码或公式
+- **粗体** 用于强调
+- *斜体* 用于术语
+
+仅返回markdown元摘要，不要加入其他内容。保持简洁和学术性。""",
+
+    "standard": """你是一位专业的文档分析专家。你的任务是创建一个高级元摘要，整合多个已有摘要并提取核心思想和主要观点。
 
 在创建元摘要时，请遵循以下准则：
 1. 识别所有摘要中重复出现的核心主题和概念
@@ -71,7 +201,31 @@ META_SUMMARY = """你是一位专业的文档分析专家。你的任务是创�
 - *斜体* 用于术语
 - > 引用块用于重要注释
 
-仅返回markdown元摘要，不要加入其他内容。不要在开头或结尾说"这是摘要"等类似的话。"""
+仅返回markdown元摘要，不要加入其他内容。不要在开头或结尾说"这是摘要"等类似的话。""",
+
+    "detailed": """你是一位专业的文档分析专家，同时也是一位出色的科普作家。你的任务是创建一个通俗易懂、详尽全面的元摘要，用日常语言解释所有概念，并提供丰富的例子和应用场景。
+
+在创建元摘要时，请遵循以下准则：
+1. 用通俗易懂的语言解释所有核心概念
+2. 包含所有重要的例子、故事和案例研究
+3. 提供实际应用和现实世界的相关性
+4. 使用类比来解释复杂概念
+5. 将概念与日常经验联系起来
+6. 保持对话式、友好的语调
+7. 确保内容既详细又易于理解
+
+使用markdown格式：
+- # 作为文档标题
+- ## 作为主要部分
+- ### 作为子部分
+- 使用项目符号列表
+- `代码块` 用于任何代码或公式
+- **粗体** 用于强调
+- *斜体* 用于术语
+- > 引用块用于重要笔记和例子
+
+仅返回markdown元摘要，不要加入其他内容。保持对话式、友好的语调，就像你在向朋友解释这些概念一样。"""
+}
 
 # 目录提取的prompt
 TOC_EXTRACTION = """你是一位精确的目录提取专家。请从以下文本中提取完整的目录内容。只需提取目录，不要包含正文内容。
@@ -90,8 +244,29 @@ TOC_EXTRACTION = """你是一位精确的目录提取专家。请从以下文本
 
 提取的目录："""
 
-# 输出整合的prompt
-OUTPUT_INTEGRATION = """你是一位专业的文档整合专家。请将以下内容整合成一个完整的文档：
+# 输出整合的prompt - 不同深度版本
+OUTPUT_INTEGRATION_TEMPLATES = {
+    "conceptual": """你是一位专业的文档整合专家。请将以下内容整合成一个简明扼要的文档，仅聚焦于核心概念和理论要点：
+
+1. 目录内容：
+{toc}
+
+2. 中间摘要内容：
+{interval_summaries}
+
+3. 整体摘要内容：
+{meta_summary}
+
+整合规则：
+1. 以整体摘要作为文档的主体框架
+2. 在文档开头加入完整的目录
+3. 保持内容的学术性和概念性
+4. 删除所有例子、故事和详细解释
+5. 保留最核心的概念和理论要点
+
+返回整合后的完整文档，使用规范的Markdown格式。""",
+
+    "standard": """你是一位专业的文档整合专家。请将以下内容整合成一个完整的文档：
 
 1. 目录内容：
 {toc}
@@ -111,4 +286,63 @@ OUTPUT_INTEGRATION = """你是一位专业的文档整合专家。请将以下�
 4. 保持内容的连贯性和逻辑性
 5. 删除重复信息，保留最重要的内容
 
-返回整合后的完整文档，使用规范的Markdown格式。"""
+返回整合后的完整文档，使用规范的Markdown格式。""",
+
+    "detailed": """你是一位专业的文档整合专家和出色的科普作家。请将以下内容整合成一个详尽全面、通俗易懂的文档：
+
+1. 目录内容：
+{toc}
+
+2. 中间摘要内容：
+{interval_summaries}
+
+3. 整体摘要内容：
+{meta_summary}
+
+整合规则：
+1. 以整体摘要作为文档的主体框架
+2. 在文档开头加入完整的目录
+3. 详细引用中间摘要中的所有例子、故事和案例研究
+4. 用通俗易懂的语言解释所有概念
+5. 提供实际应用和现实世界的相关性
+6. 使用类比来解释复杂概念
+7. 保持对话式、友好的语调
+8. 确保内容既详细又易于理解
+
+返回整合后的完整文档，使用规范的Markdown格式。保持对话式、友好的语调，就像你在向朋友解释这些概念一样。"""
+}
+
+# 保留原始prompt作为兼容性支持
+CHUNK_ANALYSIS = CHUNK_ANALYSIS_TEMPLATES["standard"]
+INTERVAL_SUMMARY = INTERVAL_SUMMARY_TEMPLATES["standard"]
+META_SUMMARY = META_SUMMARY_TEMPLATES["standard"]
+OUTPUT_INTEGRATION = OUTPUT_INTEGRATION_TEMPLATES["standard"]
+
+def get_prompt(prompt_type, depth="standard"):
+    """根据类型和深度获取对应的prompt
+    
+    Args:
+        prompt_type: prompt类型，如"chunk_analysis"、"interval_summary"等
+        depth: 深度选项，如"conceptual"、"standard"、"detailed"
+        
+    Returns:
+        对应类型和深度的prompt
+    """
+    templates_map = {
+        "chunk_analysis": CHUNK_ANALYSIS_TEMPLATES,
+        "interval_summary": INTERVAL_SUMMARY_TEMPLATES,
+        "meta_summary": META_SUMMARY_TEMPLATES,
+        "output_integration": OUTPUT_INTEGRATION_TEMPLATES
+    }
+    
+    # 如果是目录提取，直接返回固定prompt
+    if prompt_type == "toc_extraction":
+        return TOC_EXTRACTION
+    
+    # 获取对应类型的模板字典
+    templates = templates_map.get(prompt_type)
+    if not templates:
+        raise ValueError(f"未知的prompt类型: {prompt_type}")
+    
+    # 返回对应深度的prompt，如果没有则返回标准深度的prompt
+    return templates.get(depth, templates["standard"])

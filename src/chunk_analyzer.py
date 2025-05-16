@@ -9,7 +9,8 @@ import time
 from pydantic import BaseModel
 
 from langchain_openai import AzureChatOpenAI
-from config import PROMPTS
+from config import DEFAULT_DEPTH
+from prompt import get_prompt
 from src.utils import save_json, format_elapsed_time
 
 
@@ -22,15 +23,17 @@ class PageContent(BaseModel):
 class ChunkAnalyzer:
     """Chunk分析器，负责分析单个chunk并提取关键信息"""
     
-    def __init__(self, llm: AzureChatOpenAI, output_dir: Path):
+    def __init__(self, llm: AzureChatOpenAI, output_dir: Path, depth: str = DEFAULT_DEPTH):
         """初始化Chunk分析器
         
         Args:
             llm: LangChain的Azure OpenAI LLM实例
             output_dir: 输出目录路径
+            depth: 分析深度，可选值为"conceptual"、"standard"、"detailed"
         """
         self.llm = llm
         self.output_dir = output_dir
+        self.depth = depth
         
         # 确保输出目录存在
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -46,15 +49,18 @@ class ChunkAnalyzer:
             分析结果
         """
         start_time = time.time()
-        print(colored(f"\n📖 处理chunk {chunk_idx + 1}...", "yellow"))
+        print(colored(f"\n📖 处理chunk {chunk_idx + 1}... (深度: {self.depth})", "yellow"))
         
         try:
+            # 根据深度获取对应的prompt
+            chunk_analysis_prompt = get_prompt("chunk_analysis", self.depth)
+            
             # 调用LLM分析chunk
             page_parser = self.llm.with_structured_output(PageContent)
             
             result = page_parser.invoke(
                 [
-                    {"role": "system", "content": PROMPTS["chunk_analysis"]},
+                    {"role": "system", "content": chunk_analysis_prompt},
                     {"role": "user", "content": f"Content text: {chunk_text}"}
                 ],
             )
@@ -73,7 +79,8 @@ class ChunkAnalyzer:
                 "chunk_idx": chunk_idx,
                 "has_content": result.has_content,
                 "knowledge": result.knowledge if result.has_content else [],
-                "processing_time": elapsed_time
+                "processing_time": elapsed_time,
+                "depth": self.depth
             }
             
             # 保存分析结果到文件
@@ -90,7 +97,8 @@ class ChunkAnalyzer:
                 "has_content": False,
                 "knowledge": [],
                 "error": str(e),
-                "processing_time": time.time() - start_time
+                "processing_time": time.time() - start_time,
+                "depth": self.depth
             }
             
             # 保存错误信息
@@ -106,7 +114,7 @@ class ChunkAnalyzer:
             chunk_idx: chunk索引
         """
         # 构建输出文件路径
-        output_file = self.output_dir / f"chunk_{chunk_idx:04d}.json"
+        output_file = self.output_dir / f"chunk_{chunk_idx:04d}_{self.depth}.json"
         
         # 保存JSON文件
         save_json(result, output_file)
@@ -118,7 +126,12 @@ class ChunkAnalyzer:
             所有chunk的分析结果列表
         """
         results = []
-        result_files = sorted(self.output_dir.glob("chunk_*.json"))
+        # 匹配特定深度的结果文件
+        result_files = sorted(self.output_dir.glob(f"chunk_*_{self.depth}.json"))
+        
+        # 如果没有找到特定深度的结果文件，尝试加载标准深度或任何可用的结果
+        if not result_files:
+            result_files = sorted(self.output_dir.glob("chunk_*.json"))
         
         for file_path in result_files:
             try:

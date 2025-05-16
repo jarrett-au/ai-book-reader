@@ -28,18 +28,32 @@ MAX_WORKERS = 3  # 最大并行工作线程数
 # 支持的文件格式
 SUPPORTED_FORMATS = ['.pdf', '.md', '.txt']
 
+# 深度选项配置
+DEPTH_OPTIONS = ["conceptual", "standard", "detailed"]
+DEFAULT_DEPTH = "standard"
+
+# 不同深度的处理参数
+DEPTH_PARAMS = {
+    "conceptual": {
+        "keep_examples": False,
+        "explanation_detail": "low",
+        "language_style": "academic"
+    },
+    "standard": {
+        "keep_examples": True,
+        "explanation_detail": "medium",
+        "language_style": "balanced"
+    },
+    "detailed": {
+        "keep_examples": True,
+        "explanation_detail": "high",
+        "language_style": "conversational"
+    }
+}
+
 # 模型配置
 MODEL = "gpt-4.1"
 ANALYSIS_MODEL = "gpt-4.1"
-
-# Prompt配置
-PROMPTS = {
-    "chunk_analysis": CHUNK_ANALYSIS,
-    "interval_summary": INTERVAL_SUMMARY,
-    "meta_summary": META_SUMMARY,
-    "toc_extraction": TOC_EXTRACTION,
-    "output_integration": OUTPUT_INTEGRATION
-}
 
 # API配置
 AZURE_API_SETTINGS = {
