@@ -1,0 +1,10 @@
+__pycache__
+.env
+data/
+book_analysis/
+design/
+.DS_Store
+tmp*
+test*
+logs/
+*.ipynb
