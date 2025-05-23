@@ -1,10 +1,8 @@
 """
 命令行接口，提供用户交互和程序入口
 """
-import os
 import argparse
 import time
-import sys
 import traceback
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -12,10 +10,9 @@ from termcolor import colored
 from tqdm import tqdm
 import concurrent.futures
 from dotenv import load_dotenv
-load_dotenv(".env")
 
-# 使用langchain的Azure OpenAI接口
-from langchain_openai import AzureChatOpenAI
+from src.llm import get_llm
+load_dotenv(".env")
 
 # 导入自定义模块
 from config import (
@@ -32,29 +29,10 @@ from src.output_integrator import OutputIntegrator
 from src.utils import setup_directories, format_elapsed_time
 
 
-def setup_llm() -> AzureChatOpenAI:
-    """初始化AzureChatOpenAI实例"""
-    # 从环境变量中获取API配置
-    azure_api_key = os.environ.get("AZURE_API_KEY", "")
-    azure_endpoint = os.environ.get("AZURE_API_BASE", "")
-    azure_api_version = os.environ.get("AZURE_API_VERSION", "2025-01-01-preview")
-    azure_deployment = os.environ.get("AZURE_DEPLOYMENT", "gpt-4.1")
-    
-    if not azure_api_key or not azure_endpoint:
-        raise ValueError("缺少Azure API配置，请设置环境变量或.env文件")
-    
-    try:
-        llm = AzureChatOpenAI(
-            azure_deployment=azure_deployment,
-            api_key=azure_api_key,
-            azure_endpoint=azure_endpoint,
-            api_version=azure_api_version,
-        )
-        return llm
-    except Exception as e:
-        print(colored(f"设置LLM时出错: {e}", "red"))
-        traceback.print_exc()
-        sys.exit(1)
+def setup_llm():
+    """初始化LLM"""
+    return get_llm(provider="siliconflow", model="Pro/deepseek-ai/DeepSeek-V3")
+    # return get_llm(provider="azure", model="gpt-4.1")
 
 
 def print_welcome_message():
@@ -74,7 +52,7 @@ def print_welcome_message():
 支持的深度选项: {', '.join(DEPTH_OPTIONS)}
 
 使用方式：
-python cli.py --file your_file.md [--chunk-size 5000] [--overlap 500] [--interval 5] [--workers 3] [--depth 标准]
+python cli.py --file your_file.md [--chunk-size 5000] [--overlap 500] [--interval 5] [--workers 3] [--depth standard]
 
 按Enter继续或Ctrl+C退出...
 """
@@ -90,7 +68,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--overlap', type=int, default=CHUNK_OVERLAP, help=f'chunk重叠大小（字符数），默认为{CHUNK_OVERLAP}')
     parser.add_argument('--interval', type=int, default=SUMMARY_INTERVAL, help=f'摘要生成间隔（chunk数量），默认为{SUMMARY_INTERVAL}')
     parser.add_argument('--workers', type=int, default=MAX_WORKERS, help=f'并行处理线程数，默认为{MAX_WORKERS}')
-    parser.add_argument('--depth', choices=DEPTH_OPTIONS, default=DEFAULT_DEPTH, help=f'分析深度 (概念性/标准/详尽), 默认为{DEFAULT_DEPTH}')
+    parser.add_argument('--depth', choices=DEPTH_OPTIONS, default=DEFAULT_DEPTH, help=f'分析深度 (conceptual/standard/detailed), 默认为{DEFAULT_DEPTH}')
     return parser.parse_args()
 
 
@@ -220,7 +198,7 @@ def main():
             return
         
         # 初始化LLM
-        print(colored("🤖 初始化Azure OpenAI...", "cyan"))
+        print(colored("🤖 初始化LLM...", "cyan"))
         llm = setup_llm()
         
         # 设置目录结构

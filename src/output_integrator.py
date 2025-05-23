@@ -211,7 +211,7 @@ class OutputIntegrator:
             content=content,
             file_path=output_path,
             title=f"{self.base_name} - 阅读分析报告 (深度: {self.depth})",
-            metadata=metadata
+            # metadata=metadata # 暂时不添加元数据
         )
         
         return output_path

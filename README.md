@@ -23,9 +23,9 @@
 
 工具提供三种不同的分析深度选项：
 
-- **概念性**：简明扼要，仅聚焦于核心概念和理论要点，适合快速了解文档的关键内容
-- **标准**：平衡详细度，包含概念、例子和应用，适合一般阅读需求
-- **详尽**：通俗易懂且详尽全面，包含所有例子、故事和应用场景，适合深入学习
+- **conceptual**：简明扼要，仅聚焦于核心概念和理论要点，适合快速了解文档的关键内容
+- **standard**：平衡详细度，包含概念、例子和应用，适合一般阅读需求
+- **detailed**：通俗易懂且详尽全面，包含所有例子、故事和应用场景，适合深入学习
 
 ## 安装
 
@@ -62,7 +62,7 @@ python cli.py --file your_book.md
 高级选项：
 
 ```bash
-python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 --workers 3 --depth 标准
+python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 --workers 3 --depth standard
 ```
 
 参数说明：
@@ -71,7 +71,7 @@ python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 -
 - `--overlap`: chunk重叠大小（字符数），默认为500
 - `--interval`: 摘要生成间隔（chunk数量），默认为5
 - `--workers`: 并行处理线程数，默认为3
-- `--depth`: 分析深度，可选值为"概念性"、"标准"、"详尽"，默认为"标准"
+- `--depth`: 分析深度，可选值为"conceptual"、"standard"、"detailed"，默认为"standard"
 
 ## 输出文件
 
