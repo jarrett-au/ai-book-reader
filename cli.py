@@ -10,9 +10,8 @@ from termcolor import colored
 from tqdm import tqdm
 import concurrent.futures
 from dotenv import load_dotenv
-
-from src.llm import get_llm
 load_dotenv(".env")
+from src.llm import chat_model
 
 # 导入自定义模块
 from config import (
@@ -27,12 +26,6 @@ from src.chunk_analyzer import ChunkAnalyzer
 from src.summary_generator import SummaryGenerator
 from src.output_integrator import OutputIntegrator
 from src.utils import setup_directories, format_elapsed_time
-
-
-def setup_llm():
-    """初始化LLM"""
-    return get_llm(provider="siliconflow", model="Pro/deepseek-ai/DeepSeek-V3")
-    # return get_llm(provider="azure", model="gpt-4.1")
 
 
 def print_welcome_message():
@@ -199,7 +192,7 @@ def main():
         
         # 初始化LLM
         print(colored("🤖 初始化LLM...", "cyan"))
-        llm = setup_llm()
+        llm = chat_model
         
         # 设置目录结构
         dirs = setup_directories(BASE_DIR, file_path.name)

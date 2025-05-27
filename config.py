@@ -24,33 +24,3 @@ SUPPORTED_FORMATS = ['.pdf', '.md', '.txt']
 # 深度选项配置
 DEPTH_OPTIONS = ["conceptual", "standard", "detailed"]
 DEFAULT_DEPTH = "standard"
-
-# 不同深度的处理参数
-DEPTH_PARAMS = {
-    "conceptual": {
-        "keep_examples": False,
-        "explanation_detail": "low",
-        "language_style": "academic"
-    },
-    "standard": {
-        "keep_examples": True,
-        "explanation_detail": "medium",
-        "language_style": "balanced"
-    },
-    "detailed": {
-        "keep_examples": True,
-        "explanation_detail": "high",
-        "language_style": "conversational"
-    }
-}
-
-# 模型配置
-MODEL = "gpt-4.1"
-ANALYSIS_MODEL = "gpt-4.1"
-
-# API配置
-AZURE_API_SETTINGS = {
-    "api_key": "",  # 需要在环境变量或.env文件中设置
-    "azure_endpoint": "",  # 需要在环境变量或.env文件中设置
-    "api_version": "2025-01-01-preview",
-} 

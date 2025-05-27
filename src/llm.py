@@ -17,10 +17,10 @@ def get_llm(provider: str = "siliconflow", model: str = None):
     elif provider == "azure":
         print(colored(f"=== Using Azure LLM - {model} ===", "cyan"))
         return AzureChatOpenAI(
-            model=model or "gpt-4.1",
-            base_url=os.getenv("AZURE_API_BASE"),
-            api_key=os.getenv("AZURE_API_KEY"),
+            azure_endpoint=os.getenv("AZURE_API_BASE"),
+            azure_deployment=model or "gpt-4.1",
             api_version=os.getenv("AZURE_API_VERSION"),
+            api_key=os.getenv("AZURE_API_KEY"),
         )
     elif provider == "302":
         print(colored(f"=== Using 302 LLM - {model} ===", "cyan"))
@@ -33,4 +33,4 @@ def get_llm(provider: str = "siliconflow", model: str = None):
         raise ValueError(f"Invalid provider: {provider}")
 
 
-llm = get_llm("siliconflow")
+chat_model = get_llm("azure")

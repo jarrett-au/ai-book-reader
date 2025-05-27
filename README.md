@@ -2,6 +2,9 @@
 
 一个强大的AI书籍阅读和分析工具，能够提取文档目录、分析内容、生成摘要和整合输出。
 
+![example](./assets/images/example-1.jpg)
+**输出样例**: [置身事内_integrated_detailed_deepseek.pdf](./assets/pdf/置身事内_integrated_detailed_deepseek.pdf)
+
 ## 功能特点
 
 - 提取文档目录
@@ -87,6 +90,6 @@ python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 -
 
 可以在`config.py`和`prompt.py`文件中修改配置参数和提示词。
 
-## 许可证
+## 致谢
 
-MIT 
+本项目受到 [echohive42/AI-reads-books-page-by-page](https://github.com/echohive42/AI-reads-books-page-by-page/tree/main) 项目的启发。该项目提供了一种智能的PDF书籍页面分析方法，通过提取知识点并在指定间隔生成渐进式摘要，为本项目的开发提供了宝贵的参考。特此感谢。
