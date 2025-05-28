@@ -20,7 +20,7 @@
 
 - Markdown (.md)
 - 纯文本 (.txt)
-- PDF (.pdf) - 需要提供PDF转MD的转换器
+- PDF (.pdf) - 自动通过API转换为Markdown
 
 ## 深度选项
 
@@ -45,13 +45,14 @@ cd ai-book-reader
 pip install -r requirements.txt
 ```
 
-3. 创建`.env`文件并配置Azure OpenAI API：
+3. 创建`.env`文件并配置API：
 
 ```
-AZURE_API_KEY=your_api_key
-AZURE_API_BASE=your_api_endpoint
-AZURE_API_VERSION=2025-01-01-preview
-AZURE_DEPLOYMENT=gpt-4.1
+# OpenAI API配置
+OPENAI_API_KEY=your_openai_api_key_here
+
+# PDF转换API配置
+PDF_API_BASE_URL=http://192.168.8.95:8001
 ```
 
 ## 使用方法
@@ -75,6 +76,13 @@ python cli.py --file your_book.md --chunk-size 5000 --overlap 500 --interval 5 -
 - `--interval`: 摘要生成间隔（chunk数量），默认为5
 - `--workers`: 并行处理线程数，默认为3
 - `--depth`: 分析深度，可选值为"conceptual"、"standard"、"detailed"，默认为"standard"
+
+PDF处理选项：
+- `--enable-formula`: 启用公式识别
+- `--enable-table`: 启用表格识别
+- `--enable-image-caption`: 启用图片打标
+- `--pdf-language`: PDF处理语言，默认为中文(ch)
+- `--force-ocr`: 强制使用OCR
 
 ## 输出文件
 

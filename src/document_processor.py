@@ -11,6 +11,7 @@ import shutil
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from config import CHUNK_SIZE, CHUNK_OVERLAP, SUPPORTED_FORMATS
 from src.utils import copy_file_to_workspace
+from src.pdf_converter import create_pdf_converter
 
 
 class DocumentProcessor:

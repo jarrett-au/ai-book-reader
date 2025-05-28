@@ -26,6 +26,7 @@ from src.chunk_analyzer import ChunkAnalyzer
 from src.summary_generator import SummaryGenerator
 from src.output_integrator import OutputIntegrator
 from src.utils import setup_directories, format_elapsed_time
+from src.pdf_converter_factory import create_pdf_to_md_converter
 
 
 def print_welcome_message():
@@ -47,6 +48,13 @@ def print_welcome_message():
 使用方式：
 python cli.py --file your_file.md [--chunk-size 5000] [--overlap 500] [--interval 5] [--workers 3] [--depth standard]
 
+PDF处理选项：
+--enable-formula        启用公式识别
+--enable-table          启用表格识别  
+--enable-image-caption  启用图片打标
+--pdf-language ch       PDF处理语言
+--force-ocr             强制使用OCR
+
 按Enter继续或Ctrl+C退出...
 """
     print(colored(welcome_text, "cyan"))
@@ -62,6 +70,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--interval', type=int, default=SUMMARY_INTERVAL, help=f'摘要生成间隔（chunk数量），默认为{SUMMARY_INTERVAL}')
     parser.add_argument('--workers', type=int, default=MAX_WORKERS, help=f'并行处理线程数，默认为{MAX_WORKERS}')
     parser.add_argument('--depth', choices=DEPTH_OPTIONS, default=DEFAULT_DEPTH, help=f'分析深度 (conceptual/standard/detailed), 默认为{DEFAULT_DEPTH}')
+    
+    # PDF处理选项
+    parser.add_argument('--enable-formula', action='store_true', help='启用公式识别')
+    parser.add_argument('--enable-table', action='store_true', help='启用表格识别')
+    parser.add_argument('--enable-image-caption', action='store_true', help='启用图片打标')
+    parser.add_argument('--pdf-language', default='ch', help='PDF处理语言，默认为中文(ch)')
+    parser.add_argument('--force-ocr', action='store_true', help='强制使用OCR')
+    
     return parser.parse_args()
 
 
@@ -200,7 +216,26 @@ def main():
         # 1. 处理文档
         print(colored(f"\n📃 处理文档: {file_path.name}...", "cyan"))
         doc_processor = DocumentProcessor(file_path)
-        processed_file = doc_processor.process(dirs["file"])
+        
+        # 创建PDF转换器（如果需要）
+        pdf_converter = None
+        if file_path.suffix.lower() == '.pdf':
+            # 准备PDF处理参数
+            pdf_params = {
+                'enable_formula': args.enable_formula,
+                'enable_table': args.enable_table,
+                'enable_image_caption': args.enable_image_caption,
+                'language': args.pdf_language,
+                'is_ocr': args.force_ocr
+            }
+            
+            def pdf_converter_func(pdf_path: Path) -> Path:
+                converter = create_pdf_to_md_converter()
+                return converter(pdf_path, **pdf_params)
+            
+            pdf_converter = pdf_converter_func
+        
+        processed_file = doc_processor.process(dirs["file"], pdf_to_md_converter=pdf_converter)
         print(colored(f"✅ 文档处理完成: {processed_file}", "green"))
         
         # 2. 加载文档文本
