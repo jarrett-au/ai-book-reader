@@ -1,10 +1,39 @@
-langchain>=0.1.0
-langchain-openai>=0.0.5
-openai>=1.10.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-PyMuPDF>=1.23.0
-termcolor>=2.3.0
-tqdm>=4.66.0
+# AI 图书阅读器项目依赖
+
+# 核心依赖
 requests>=2.31.0
-langchain-text-splitters>=0.0.1
+termcolor>=2.3.0
+pathlib>=1.0.1
+
+# PDF处理 - 本地支持 (PyMuPDF)
+pymupdf>=1.25.5
+pymupdf4llm>=0.0.24
+
+# OCR支持 (可选)
+# 如果需要OCR功能，请取消注释以下依赖
+# pytesseract>=0.3.10
+# Pillow>=10.0.0
+# opencv-python>=4.8.0
+
+# 文本处理和分析
+# langchain>=0.1.0  # 用于文档分块，如需要请取消注释
+# numpy>=1.24.0     # 数值计算，可能被某些文本处理库需要
+
+# 开发和测试依赖 (可选)
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.7.0
+# flake8>=6.0.0
+
+# 配置管理
+python-dotenv>=1.0.0
+
+# 日志
+loguru>=0.7.0
+
+# 类型检查 (可选)
+# mypy>=1.5.0
+
+# 文档生成 (可选)
+# sphinx>=7.1.0
+# sphinx-rtd-theme>=1.3.0
