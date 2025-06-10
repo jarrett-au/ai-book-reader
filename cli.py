@@ -26,7 +26,7 @@ from src.chunk_analyzer import ChunkAnalyzer
 from src.summary_generator import SummaryGenerator
 from src.output_integrator import OutputIntegrator
 from src.utils import setup_directories, format_elapsed_time
-from src.pdf_converter_factory import create_pdf_to_md_converter
+from src.pdf_converter_adapter import auto_select_converter
 
 
 def print_welcome_message():
@@ -230,8 +230,8 @@ def main():
             }
             
             def pdf_converter_func(pdf_path: Path) -> Path:
-                converter = create_pdf_to_md_converter()
-                return converter(pdf_path, **pdf_params)
+                converter = auto_select_converter()
+                return converter.convert(pdf_path, dirs["file"], **pdf_params)
             
             pdf_converter = pdf_converter_func
         

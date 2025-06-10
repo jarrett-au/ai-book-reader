@@ -1,6 +1,7 @@
 """
 PDF转换器适配器，提供统一接口支持本地和服务器两种转换方式
 """
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 from termcolor import colored
@@ -266,6 +267,8 @@ def create_local_converter(**kwargs) -> UnifiedPDFConverter:
 
 def create_server_converter(**kwargs) -> UnifiedPDFConverter:
     """创建服务器转换器"""
+    if not os.getenv("PDF_API_BASE_URL"):
+        raise ValueError("PDF_API_BASE_URL 环境变量未设置")
     return UnifiedPDFConverter(use_local=False, server_options=kwargs)
 
 

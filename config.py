@@ -27,7 +27,7 @@ DEPTH_OPTIONS = ["conceptual", "standard", "detailed"]
 DEFAULT_DEPTH = "standard"
 
 # PDF转换API配置
-PDF_API_BASE_URL = os.getenv("PDF_API_BASE_URL", "http://192.168.8.95:8001")
+PDF_API_BASE_URL = os.getenv("PDF_API_BASE_URL")
 PDF_API_TIMEOUT = 600  # 10分钟超时
 PDF_API_RETRY_COUNT = 3  # 重试次数
 PDF_API_RETRY_DELAY = 5  # 重试间隔（秒）
